@@ -27,12 +27,7 @@ FetchContent_MakeAvailable(raylib)
 # --- Sources ---
 set(SOURCES
         src/main.c
-        src/actor.c
-        src/model.c
-        src/view.c
-        src/controller.c
         src/deque.c
-        src/timer.c
 )
 
 add_executable(snake ${SOURCES})

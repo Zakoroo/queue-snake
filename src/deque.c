@@ -12,6 +12,7 @@
 
 node_t *node_new(void *value, node_t *next) {
     node_t *node = (node_t*) malloc(sizeof(node_t));
+    if (node == NULL) return NULL; // Good practice to check malloc
     node->value = value;
     node->next = next;
     return node;
@@ -19,9 +20,9 @@ node_t *node_new(void *value, node_t *next) {
 
 deque_t *deque_new() {
     deque_t *deque = (deque_t*) malloc(sizeof(deque_t));
-    node_t *sentinel = node_new(NULL, NULL);
-    deque->head = sentinel;
-    deque->tail = sentinel;
+    if (deque == NULL) return NULL;
+    deque->head = NULL; // No sentinel node
+    deque->tail = NULL;
     deque->length = 0;
     return deque;
 }
@@ -29,11 +30,13 @@ deque_t *deque_new() {
 void deque_add_first(deque_t *deque, void *value) {
     if (deque == NULL) return;
 
-    node_t *node = node_new(value, deque->head->next);
-    if (deque->head == deque->tail) {
+    node_t *node = node_new(value, deque->head);
+    deque->head = node;
+
+    // If it's the first node being added, tail must also point to it
+    if (deque->tail == NULL) {
         deque->tail = node;
     }
-    deque->head->next = node;
     deque->length++;
 }
 
@@ -41,66 +44,73 @@ void deque_add_last(deque_t *deque, void *value) {
     if (deque == NULL) return;
 
     node_t *node = node_new(value, NULL);
-    deque->tail->next = node;
-    deque->tail = node;
+
+    if (deque->tail == NULL) {
+        // List was empty
+        deque->head = node;
+        deque->tail = node;
+    } else {
+        deque->tail->next = node;
+        deque->tail = node;
+    }
     deque->length++;
 }
 
 void *deque_peek_first(deque_t *deque) {
-    if (deque == NULL) return NULL;
-    if (deque->head == deque->tail) return NULL;
-
-    return deque->head->next->value;
+    if (deque == NULL || deque->head == NULL) return NULL;
+    return deque->head->value;
 }
 
 void *deque_peek_last(deque_t *deque) {
-    if (deque == NULL) return NULL;
-    if (deque->head == deque->tail) return NULL;
-
+    if (deque == NULL || deque->tail == NULL) return NULL;
     return deque->tail->value;
 }
 
 void *deque_remove_first(deque_t *deque) {
-    if (deque == NULL) return NULL;
-    if (deque->head == deque->tail) return NULL;
+    if (deque == NULL || deque->head == NULL) return NULL;
 
-    node_t *target = deque->head->next;
+    node_t *target = deque->head;
     void *value = target->value;
 
-    if (target == deque->tail) {
-        deque->tail = deque->head;
+    deque->head = target->next;
+
+    // If we just removed the last node, update the tail to NULL
+    if (deque->head == NULL) {
+        deque->tail = NULL;
     }
 
-    deque->head->next = target->next;
     free(target);
     deque->length--;
     return value;
 }
 
 void *deque_remove_last(deque_t *deque) {
-    if (deque == NULL) return NULL;
-    if (deque->head == deque->tail) return NULL;
+    if (deque == NULL || deque->head == NULL) return NULL;
 
-    node_t *before = deque->head;
-    node_t *target = before->next;
+    node_t *target = deque->tail;
+    void *value = target->value;
 
-    while (target->next != NULL) {
-        before = target;
-        target = target->next;
+    if (deque->head == deque->tail) {
+        // Only one element existed
+        deque->head = NULL;
+        deque->tail = NULL;
+    } else {
+        // Must traverse to find the node BEFORE the tail
+        node_t *current = deque->head;
+        while (current->next != deque->tail) {
+            current = current->next;
+        }
+        current->next = NULL;
+        deque->tail = current;
     }
 
-    void *value = target->value;
-    before->next = NULL;
-    deque->tail = before;
     free(target);
     deque->length--;
-
     return value;
 }
 
-
 void deque_free(deque_t *deque) {
-    if (deque == NULL) {return;}
+    if (deque == NULL) return;
 
     node_t *current = deque->head;
     while (current != NULL) {
@@ -112,15 +122,10 @@ void deque_free(deque_t *deque) {
     free(deque);
 }
 
-// ----------------------------------------------------------------------------
-// List representation
-// ----------------------------------------------------------------------------
-
 void deque_print(deque_t *deque, void (*func_ptr)(void *value)) {
-    // You do not need to change this function!
-    if (deque == NULL) {return;}
+    if (deque == NULL) return;
 
-    node_t *current = deque->head->next;
+    node_t *current = deque->head; // Start directly at head
     printf("[");
 
     while (current != NULL) {
@@ -131,7 +136,7 @@ void deque_print(deque_t *deque, void (*func_ptr)(void *value)) {
         current = current->next;
     }
 
-    printf("%s\n", "]");
+    printf("]\n");
 }
 
 
