@@ -6,33 +6,31 @@
 #include <stdlib.h>
 #include "../include/queue.h"
 
-// ----------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------
 // Queue manipulation
-// ----------------------------------------------------------------------------
-node_t *node_new(void *value, node_t *next) {
+// --------------------------------------------------------------------------------------
+node_t *node_new(cell_t value, node_t *next) {
+    // TODO: Implement the function
     node_t *node = (node_t*) malloc(sizeof(node_t));
-    if (node == NULL) return NULL;
     node->value = value;
     node->next = next;
     return node;
 }
 
 queue_t *queue_new() {
+    // TODO: Implement the function
     queue_t *queue = (queue_t*) malloc(sizeof(queue_t));
-    if (queue == NULL) return NULL;
     queue->head = NULL; // No sentinel node
     queue->tail = NULL;
     queue->length = 0;
     return queue;
 }
 
-void queue_add(queue_t *queue, void *value) {
-    if (queue == NULL) return;
-
+void queue_add(queue_t *queue, cell_t value) {
+    // TODO: Implement the function
     node_t *node = node_new(value, NULL);
 
     if (queue->tail == NULL) {
-        // List was empty
         queue->head = node;
         queue->tail = node;
     } else {
@@ -42,23 +40,13 @@ void queue_add(queue_t *queue, void *value) {
     queue->length++;
 }
 
-void *queue_peek(queue_t *queue) {
-    if (queue == NULL || queue->tail == NULL) return NULL;
-    return queue->tail->value;
-}
-
-void *queue_remove(queue_t *queue) {
-    if (queue == NULL || queue->head == NULL) return NULL;
-
+cell_t queue_remove(queue_t *queue) {
+    // TODO: Implement the function
     node_t *target = queue->head;
-    void *value = target->value;
-
+    cell_t value = target->value;
     queue->head = target->next;
 
-    // If we just removed the last node, update the tail to NULL
-    if (queue->head == NULL) {
-        queue->tail = NULL;
-    }
+    if (queue->head == NULL) {queue->tail = NULL;}
 
     free(target);
     queue->length--;
@@ -66,26 +54,18 @@ void *queue_remove(queue_t *queue) {
 }
 
 void queue_free(queue_t *queue) {
-    if (queue == NULL) return;
-
-    node_t *current = queue->head;
-    while (current != NULL) {
-        node_t *next = current->next;
-        free(current);
-        current = next;
-    }
-
+    // TODO: Implement the function
+    while (queue->head) queue_remove(queue);
     free(queue);
 }
 
-void queue_print(queue_t *queue, void (*func_ptr)(void *value)) {
-    if (queue == NULL) return;
-
-    node_t *current = queue->head; // Start directly at head
+void queue_print(queue_t *queue) {
+    // TODO: Implement the function
+    node_t *current = queue->head;
     printf("[");
 
     while (current != NULL) {
-        func_ptr(current->value);
+        printf("(%d, %d)", current->value.x, current->value.y);
         if (current->next != NULL) {
             printf(",");
         }

@@ -1,319 +1,198 @@
-// --------------------------------------------------------------------------------------
-// Standard libraries
-// --------------------------------------------------------------------------------------
+//
+// Created by Hussein Hafid on 2026-04-06.
+//
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-
-// --------------------------------------------------------------------------------------
-// Local libraries
-// --------------------------------------------------------------------------------------
 #include "queue.h"
 #include "raylib.h"
 
 // --------------------------------------------------------------------------------------
-// Macro Definitions
+// Configuration
 // --------------------------------------------------------------------------------------
-#define WINDOW_ROWS 20
-#define WINDOW_COLS 32
-#define CELL_SIZE 32
-#define TARGET_FPS 60
+#define GRID_WIDTH    32
+#define GRID_HEIGHT   20
+#define CELL_SIZE     32
+#define FPS           60
+#define GAME_TICK     0.08f // Seconds between moves
 
 // --------------------------------------------------------------------------------------
-// Enumerations
+// Types
 // --------------------------------------------------------------------------------------
-typedef enum {
-    UP,
-    DOWN,
-    LEFT,
-    RIGHT,
-} direction_t;
+typedef enum { DIR_UP, DIR_DOWN, DIR_LEFT, DIR_RIGHT } dir_t;
 
-// --------------------------------------------------------------------------------------
-// Structures
-// --------------------------------------------------------------------------------------
 typedef struct {
-    direction_t direction;
-    queue_t *body;
-} snake_t;
-
-typedef cell_t apple_t;
+    queue_t *snake;
+    dir_t    dir;
+    int      score;
+    bool     can_change_dir;
+    bool     is_dead;
+} game_t;
 
 // --------------------------------------------------------------------------------------
 // Function declarations
 // --------------------------------------------------------------------------------------
-
-cell_t *cell_new(int x, int y, Color color);
-void cell_draw(cell_t *cell);
-snake_t *snake_new(int x, int y);
-void snake_draw(snake_t *snake);
-void snake_free(snake_t *snake);
-apple_t *apple_new(snake_t *snake);
-void place_apple(snake_t *snake, apple_t *apple);
-bool check_snake_eat_apple(snake_t *snake, apple_t *apple);
-bool check_snake_eat_self(snake_t *snake, int head_x, int head_y);
+static void handle_input(game_t *game);
+static void update_game(game_t *game, cell_t *apple, float *timer);
+static void draw_game(const game_t *game, cell_t apple);
+static void reset_game(game_t *game, cell_t *apple);
+static bool is_pos_on_snake(queue_t *q, int x, int y, bool skip_head);
 
 // --------------------------------------------------------------------------------------
-// Main function
+// Main
 // --------------------------------------------------------------------------------------
 int main(void) {
-    // Initialize window
-    InitWindow(WINDOW_COLS*CELL_SIZE, WINDOW_ROWS*CELL_SIZE, "Snake");
-    SetTargetFPS(TARGET_FPS);
+    InitWindow(GRID_WIDTH * CELL_SIZE, GRID_HEIGHT * CELL_SIZE, "Snake 2.0");
+    SetTargetFPS(FPS);
 
-    // Create new snake
-    snake_t *snake = snake_new(WINDOW_COLS/2, WINDOW_ROWS/2);
+    game_t game = { .snake = queue_new() };
+    cell_t apple = { .color = RED };
+    float move_timer = 0;
 
-    // Create and place apple
-    apple_t *apple = apple_new(snake);
+    reset_game(&game, &apple);
 
-    // State variables
-    bool gameover = false;
-    bool quit = false;
-    int score = 0;
-
-    // Game loop
     while (!WindowShouldClose()) {
-        // ----- Draw stuff ----------------
-        BeginDrawing();
+        handle_input(&game);
+        update_game(&game, &apple, &move_timer);
+        draw_game(&game, apple);
 
-        // 1. Clear window
-        ClearBackground(BLACK);
-
-        // 2. Draw snake
-        snake_draw(snake);
-
-        // 3. Draw apple
-        cell_draw(apple);
-
-        // 4. Display score
-        char buff[20];
-        sprintf(buff, "score: %d", score);
-        DrawText(buff, (WINDOW_COLS-4)*CELL_SIZE, 10, 21, YELLOW);
-
-        // 5. Display Gamer Over if it is
-        if (gameover == true) {
-            int fontSize = 40;
-            const char* text = "GAME OVER";
-
-            // Center the text using Raylib utilities
-            int textWidth = MeasureText(text, fontSize);
-            DrawText(
-                text,
-                (WINDOW_COLS * CELL_SIZE)/2 - textWidth/2,
-                (WINDOW_ROWS * CELL_SIZE)/2 - fontSize/2,
-                fontSize,
-                RED
-            );
+        if (game.is_dead && IsKeyPressed(KEY_R)) {
+            reset_game(&game, &apple);
         }
-
-        EndDrawing();
-
-        // ----- Read input ----------------
-        int key = GetKeyPressed();
-
-        // Update snake direction
-        switch (key) {
-            case KEY_UP:
-            case KEY_W:
-                if (snake->direction != DOWN) {
-                    snake->direction = UP;
-                }
-                break;
-            case KEY_DOWN:
-            case KEY_S:
-                if (snake->direction != UP) {
-                    snake->direction = DOWN;
-                }
-                break;
-            case KEY_LEFT:
-            case KEY_A:
-                if (snake->direction != RIGHT) {
-                    snake->direction = LEFT;
-                }
-                break;
-            case KEY_RIGHT:
-            case KEY_D:
-                if (snake->direction != LEFT) {
-                    snake->direction = RIGHT;
-                }
-                break;
-            case KEY_Q:
-                quit = true;
-                break;
-            default:
-                // No direction change
-                break;
-        }
-
-        if (quit == true) {
-            break;
-        }
-        if (gameover == true) {
-            continue;
-        }
-
-        // ----- Update state --------------
-
-        cell_t *head = queue_peek(snake->body);
-        int head_x = head->x;
-        int head_y = head->y;
-
-        switch (snake->direction) {
-            case UP:
-                head_y--;
-                break;
-            case DOWN:
-                head_y++;
-                break;
-            case LEFT:
-                head_x--;
-                break;
-            case RIGHT:
-                head_x++;
-                break;
-            default:
-                // Do nothing
-                break;
-        }
-
-        head_x = ((head_x % WINDOW_COLS) + WINDOW_COLS ) % WINDOW_COLS;
-        head_y = ((head_y % WINDOW_ROWS) + WINDOW_ROWS ) % WINDOW_ROWS;
-
-        if (check_snake_eat_apple(snake, apple)) {
-            // Grow snake
-            cell_t *new_head = cell_new(head_x, head_y, head->color);
-            queue_add(snake->body, new_head);
-
-            // Update score and apple
-            score++;
-            place_apple(snake, apple);
-        }
-
-        else if (check_snake_eat_self(snake, head_x, head_y)) {
-            gameover = true;
-        }
-
-        else {
-            // Just move snake
-            free(queue_remove(snake->body));
-            cell_t *new_head = cell_new(head_x, head_y, head->color);
-            queue_add(snake->body, new_head);
-        }
-        WaitTime(0.08);
     }
 
-    snake_free(snake);
-    free(apple);
+    queue_free(game.snake);
+    CloseWindow();
     return 0;
 }
 
 // --------------------------------------------------------------------------------------
 // Function definitions
 // --------------------------------------------------------------------------------------
-cell_t  *cell_new(int x, int y, Color color) {
-    cell_t *cell = malloc(sizeof(cell_t));
-    cell->x = x;
-    cell->y = y;
-    cell->color = color;
-    return cell;
-}
+static void reset_game(game_t *game, cell_t *apple) {
+    while (game->snake->head) queue_remove(game->snake);
 
-void cell_draw(cell_t *cell) {
-    if (cell == NULL) return;
+    game->dir = DIR_UP;
+    game->score = 0;
+    game->is_dead = false;
 
-    DrawRectangle(
-        cell->x*CELL_SIZE,
-        cell->y*CELL_SIZE,
-        CELL_SIZE,
-        CELL_SIZE,
-        cell->color
-    );
-}
+    cell_t head = { GRID_WIDTH / 2, GRID_HEIGHT / 2, GREEN };
+    queue_add(game->snake, head);
 
-snake_t *snake_new(int x, int y) {
-    snake_t *snake = (snake_t *)malloc(sizeof(snake_t));
-
-    snake->direction = UP; // Initial direction
-    snake->body = queue_new(); // Emtpy new queue
-
-    // Place snake head on the center
-    cell_t *head = cell_new(WINDOW_COLS/2, WINDOW_ROWS/2, GREEN);
-    queue_add(snake->body, head);
-
-    return snake;
-}
-
-void snake_draw(snake_t *snake) {
-    if (snake == NULL) return;
-
-    node_t *segment = snake->body->head;
-    while (segment != NULL) {
-        cell_t *cell = (cell_t*) segment->value;
-        cell_draw(cell);
-        segment = segment->next;
-    }
-}
-
-void snake_free(snake_t *snake) {
-    if (snake == NULL) return;
-    if (snake->body != NULL) queue_free(snake->body);
-    free(snake);
-}
-
-apple_t *apple_new(snake_t *snake) {
-    apple_t *apple = (apple_t *)malloc(sizeof(apple_t));
-    apple->color = RED;
-
-    place_apple(snake, apple);
-    return apple;
-}
-
-void place_apple(snake_t *snake, apple_t *apple) {
-    if (snake == NULL || apple == NULL) return;
-
-    bool unique;
+    // Place initial apple
     do {
-        // Generate a random position
-        unique = true;
-        apple->x = GetRandomValue(0, WINDOW_COLS - 1);
-        apple->y = GetRandomValue(0, WINDOW_ROWS - 1);
-
-        node_t *segment = snake->body->head;
-        while (segment != NULL) {
-            cell_t *cell = (cell_t*) segment->value;
-
-            if (cell->x == apple->x && cell->y == apple->y) {
-                unique = false;
-                break;
-            }
-
-            segment = segment->next;
-        }
-    } while (!unique);
+        apple->x = GetRandomValue(0, GRID_WIDTH - 1);
+        apple->y = GetRandomValue(0, GRID_HEIGHT - 1);
+    } while (is_pos_on_snake(game->snake, apple->x, apple->y, false));
 }
 
-bool check_snake_eat_apple(snake_t *snake, apple_t *apple) {
-    if (snake == NULL || apple == NULL) return false;
+static void handle_input(game_t *game) {
+    if (game->is_dead || !game->can_change_dir) return;
 
-    cell_t *head = queue_peek(snake->body);
-    return head->x == apple->x && head->y == apple->y;
+    dir_t old_dir = game->dir;
+    // Direct assignment allows the "last key pressed" to override previous ones per frame
+    if (IsKeyPressed(KEY_UP)    || IsKeyPressed(KEY_W)) if (game->dir != DIR_DOWN)  game->dir = DIR_UP;
+    if (IsKeyPressed(KEY_DOWN)  || IsKeyPressed(KEY_S)) if (game->dir != DIR_UP)    game->dir = DIR_DOWN;
+    if (IsKeyPressed(KEY_LEFT)  || IsKeyPressed(KEY_A)) if (game->dir != DIR_RIGHT) game->dir = DIR_LEFT;
+    if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) if (game->dir != DIR_LEFT)  game->dir = DIR_RIGHT;
+
+    if (old_dir != game->dir) {
+        game->can_change_dir = false;
+    }
 }
 
-bool check_snake_eat_self(snake_t *snake, int head_x, int head_y) {
-    if (snake == NULL || snake->body == NULL) return false;
+static void update_game(game_t *game, cell_t *apple, float *timer) {
+    if (game->is_dead) return;
 
-    node_t *segment = snake->body->head->next;
+    *timer += GetFrameTime();
+    if (*timer < GAME_TICK) return;
+    *timer = 0;
 
-    while (segment != NULL) {
-        cell_t *cell = (cell_t*) segment->value;
+    cell_t head = game->snake->tail->value;
+    int nx = head.x;
+    int ny = head.y;
 
-        if (cell->x == head_x && cell->y == head_y) {
-            return true;
-        }
-
-        segment = segment->next;
+    switch (game->dir) {
+        case DIR_UP:    ny--; break;
+        case DIR_DOWN:  ny++; break;
+        case DIR_LEFT:  nx--; break;
+        case DIR_RIGHT: nx++; break;
     }
 
+    // Wrapping logic
+    nx = (nx + GRID_WIDTH) % GRID_WIDTH;
+    ny = (ny + GRID_HEIGHT) % GRID_HEIGHT;
+
+    // Check Self-Collision
+    if (is_pos_on_snake(game->snake, nx, ny, true)) {
+        game->is_dead = true;
+        return;
+    }
+
+    // Check Apple
+    bool eating = (nx == apple->x && ny == apple->y);
+
+    // Core Movement: Add new head, remove tail ONLY if not eating
+    cell_t new_head = { nx, ny, GREEN };
+    queue_add(game->snake, new_head);
+
+    if (eating) {
+        game->score++;
+        do {
+            apple->x = GetRandomValue(0, GRID_WIDTH - 1);
+            apple->y = GetRandomValue(0, GRID_HEIGHT - 1);
+        } while (is_pos_on_snake(game->snake, apple->x, apple->y, false));
+    } else {
+        queue_remove(game->snake);
+    }
+
+    game->can_change_dir = true;
+}
+
+static void draw_game(const game_t *game, cell_t apple) {
+    BeginDrawing();
+    ClearBackground(BLACK);
+
+    // Draw Apple (with a 1px padding for a cleaner look)
+    DrawRectangle(
+        apple.x * CELL_SIZE + 1,
+        apple.y * CELL_SIZE + 1,
+        CELL_SIZE - 2,
+        CELL_SIZE - 2,
+        apple.color
+    );
+
+    // Draw Snake
+    node_t *curr = game->snake->head;
+    while (curr) {
+        DrawRectangle(
+            curr->value.x * CELL_SIZE + 1,
+            curr->value.y * CELL_SIZE + 1,
+            CELL_SIZE - 2,
+            CELL_SIZE - 2,
+            curr->value.color
+        );
+        curr = curr->next;
+    }
+
+    // Scoreboard
+    DrawText(TextFormat("SCORE: %03d", game->score), 10, 10, 20, RAYWHITE);
+
+    if (game->is_dead) {
+        DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.7f));
+        DrawText("GAME OVER", GetScreenWidth()/2 - 70, GetScreenHeight()/2 - 20, 30, RED);
+        DrawText("PRESS 'R' TO RESTART", GetScreenWidth()/2 - 70, GetScreenHeight()/2 + 20, 15, RAYWHITE);
+    }
+
+    EndDrawing();
+}
+
+static bool is_pos_on_snake(queue_t *q, int x, int y, bool skip_head) {
+    node_t *curr = skip_head ? q->head->next : q->head;
+    while (curr) {
+        if (curr->value.x == x && curr->value.y == y) return true;
+        curr = curr->next;
+    }
     return false;
 }

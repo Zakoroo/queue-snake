@@ -8,78 +8,84 @@
 #include "raylib.h"
 
 /**
- * Data struct for storing information about active cells on the screen.
+ * @brief Represents a single coordinate on the game grid.
  */
 typedef struct {
-    int x;
-    int y;
-    Color color;
+    int x;     /**< Horizontal grid coordinate. */
+    int y;     /**< Vertical grid coordinate. */
+    Color color; /**< Display color of the cell. */
 } cell_t;
 
-
 /**
- * List node representing an element in the list.
+ * @brief A node within the linked-list based queue.
  */
 typedef struct node_t {
-    void *value;
-    struct node_t *next;
+    cell_t value;         /**< The cell data stored in this node. */
+    struct node_t *next;  /**< Pointer to the next node in the sequence. */
 } node_t;
 
 /**
- * List structure pointing to this first (head) and last (tail) element.
+ * @brief A FIFO (First-In, First-Out) queue structure.
+ *
+ * Used to manage the snake's body, where the head of the queue represents
+ * the tail of the snake, and the tail of the queue represents the head.
+ * I know it is kind of confusing, but bear with me.
  */
 typedef struct {
-    int length;
-    node_t *head;
-    node_t *tail;
+    int length;     /**< Total number of elements currently in the queue. */
+    node_t *head;   /**< Pointer to the oldest element (front of queue). */
+    node_t *tail;   /**< Pointer to the newest element (back of queue). */
 } queue_t;
 
 /**
- * Create a new node.
- * @param value of type @code void*@endcode
- * @param next pointing to the next element in the list
+ * @brief Allocates and initializes a new node.
+ *
+ * @param value The cell data to be stored.
+ * @param next  Pointer to the next node in the list.
+ * @return node_t* Pointer to the newly allocated node.
  */
-node_t *node_new(void *value, node_t *next);
+node_t *node_new(cell_t value, node_t *next);
 
 /**
- *  Create a new empty list (length == 0)
- *  @return pointer ot the new list
+ * @brief Initializes a new, empty queue.
+ *
+ * @return queue_t* A pointer to the heap-allocated queue.
+ * @note Must be cleaned up using queue_free().
  */
-queue_t *queue_new();
+queue_t *queue_new(void);
 
 /**
- *  Add a new element at the end on the list.
- *  @param queue
- *  @param value of type @code void*@endcode
+ * @brief Appends a new cell to the end (tail) of the queue.
+ *
+ * In Snake, this is typically used to move the head forward.
+ *
+ * @param queue Pointer to the target queue.
+ * @param value The cell data to add.
  */
-void queue_add(queue_t *queue, void *value);
+void queue_add(queue_t *queue, cell_t value);
 
 /**
- *  Get value at of the element at the given index.
- *  @param queue
- *  @param index
- *  @return object of type @code data_t@endcode containing the value at index
+ * @brief Removes and returns the element at the front (head) of the queue.
+ *
+ * In Snake, this is used to "shrink" the tail as the snake moves.
+ *
+ * @param queue Pointer to the target queue.
+ * @return cell_t The value that was stored in the removed node.
+ * @warning Ensure queue is not empty before calling.
  */
-void *queue_peek(queue_t *queue);
+cell_t queue_remove(queue_t *queue);
 
 /**
- *  Remove the element at the given index.
- *  @param queue
- *  @param index
- *  @return object of type @code data_t@endcode containing the value at index
+ * @brief Logs the queue contents to the console for debugging.
+ *
+ * @param queue Pointer to the queue to print.
  */
-void *queue_remove(queue_t *queue);
+void queue_print(queue_t *queue);
 
 /**
- * Returns the string representation of the list.
- * @param queue
- * @return string representation of @code list@endcode
- */
-void queue_print(queue_t *queue, void (*func_ptr)(void *value));
-
-/**
- * Frees a list including all nodes belonging to it.
- * @param queue
+ * @brief Deallocates the queue and all its constituent nodes.
+ *
+ * @param queue Pointer to the queue to be freed.
  */
 void queue_free(queue_t *queue);
 
