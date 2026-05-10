@@ -5,6 +5,18 @@
 #ifndef LAB_LIST_H
 #define LAB_LIST_H
 
+#include "raylib.h"
+
+/**
+ * Data struct for storing information about active cells on the screen.
+ */
+typedef struct {
+    int x;
+    int y;
+    Color color;
+} cell_t;
+
+
 /**
  * List node representing an element in the list.
  */
@@ -20,7 +32,7 @@ typedef struct {
     int length;
     node_t *head;
     node_t *tail;
-} deque_t;
+} queue_t;
 
 /**
  * Create a new node.
@@ -33,66 +45,42 @@ node_t *node_new(void *value, node_t *next);
  *  Create a new empty list (length == 0)
  *  @return pointer ot the new list
  */
-deque_t *deque_new();
-
-/**
- *  Add a new element at the beginning of the deque.
- *  @param deque
- *  @param value of type @code void*@endcode
- */
-void deque_add_first(deque_t *deque, void *value);
+queue_t *queue_new();
 
 /**
  *  Add a new element at the end on the list.
- *  @param deque
+ *  @param queue
  *  @param value of type @code void*@endcode
  */
-void deque_add_last(deque_t *deque, void *value);
+void queue_add(queue_t *queue, void *value);
 
 /**
  *  Get value at of the element at the given index.
- *  @param deque
+ *  @param queue
  *  @param index
  *  @return object of type @code data_t@endcode containing the value at index
  */
-void *deque_peek_first(deque_t *deque);
-
-/**
- *  Get value at of the element at the given index.
- *  @param deque
- *  @param index
- *  @return object of type @code data_t@endcode containing the value at index
- */
-void *deque_peek_last(deque_t *deque);
+void *queue_peek(queue_t *queue);
 
 /**
  *  Remove the element at the given index.
- *  @param deque
+ *  @param queue
  *  @param index
  *  @return object of type @code data_t@endcode containing the value at index
  */
-void *deque_remove_first(deque_t *deque);
-
-/**
- *  Remove the element at the given index.
- *  @param deque
- *  @param index
- *  @return object of type @code data_t@endcode containing the value at index
- */
-void *deque_remove_last(deque_t *deque);
-
+void *queue_remove(queue_t *queue);
 
 /**
  * Returns the string representation of the list.
- * @param deque
+ * @param queue
  * @return string representation of @code list@endcode
  */
-void deque_print(deque_t *deque, void (*func_ptr)(void *value));
+void queue_print(queue_t *queue, void (*func_ptr)(void *value));
 
 /**
  * Frees a list including all nodes belonging to it.
- * @param deque
+ * @param queue
  */
-void deque_free(deque_t *deque);
+void queue_free(queue_t *queue);
 
 #endif //LAB_LIST_H

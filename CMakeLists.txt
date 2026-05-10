@@ -27,7 +27,7 @@ FetchContent_MakeAvailable(raylib)
 # --- Sources ---
 set(SOURCES
         src/main.c
-        src/deque.c
+        src/queue.c
 )
 
 add_executable(snake ${SOURCES})

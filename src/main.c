@@ -8,7 +8,7 @@
 // --------------------------------------------------------------------------------------
 // Local libraries
 // --------------------------------------------------------------------------------------
-#include "deque.h"
+#include "queue.h"
 #include "raylib.h"
 
 // --------------------------------------------------------------------------------------
@@ -33,14 +33,8 @@ typedef enum {
 // Structures
 // --------------------------------------------------------------------------------------
 typedef struct {
-    int x;
-    int y;
-    Color color;
-} cell_t;
-
-typedef struct {
     direction_t direction;
-    deque_t *body;
+    queue_t *body;
 } snake_t;
 
 typedef cell_t apple_t;
@@ -161,7 +155,7 @@ int main(void) {
 
         // ----- Update state --------------
 
-        cell_t *head = deque_peek_last(snake->body);
+        cell_t *head = queue_peek(snake->body);
         int head_x = head->x;
         int head_y = head->y;
 
@@ -189,7 +183,7 @@ int main(void) {
         if (check_snake_eat_apple(snake, apple)) {
             // Grow snake
             cell_t *new_head = cell_new(head_x, head_y, head->color);
-            deque_add_last(snake->body, new_head);
+            queue_add(snake->body, new_head);
 
             // Update score and apple
             score++;
@@ -202,9 +196,9 @@ int main(void) {
 
         else {
             // Just move snake
-            free(deque_remove_first(snake->body));
+            free(queue_remove(snake->body));
             cell_t *new_head = cell_new(head_x, head_y, head->color);
-            deque_add_last(snake->body, new_head);
+            queue_add(snake->body, new_head);
         }
         WaitTime(0.08);
     }
@@ -241,11 +235,11 @@ snake_t *snake_new(int x, int y) {
     snake_t *snake = (snake_t *)malloc(sizeof(snake_t));
 
     snake->direction = UP; // Initial direction
-    snake->body = deque_new(); // Emtpy new deque
+    snake->body = queue_new(); // Emtpy new queue
 
     // Place snake head on the center
     cell_t *head = cell_new(WINDOW_COLS/2, WINDOW_ROWS/2, GREEN);
-    deque_add_last(snake->body, head);
+    queue_add(snake->body, head);
 
     return snake;
 }
@@ -263,7 +257,7 @@ void snake_draw(snake_t *snake) {
 
 void snake_free(snake_t *snake) {
     if (snake == NULL) return;
-    if (snake->body != NULL) deque_free(snake->body);
+    if (snake->body != NULL) queue_free(snake->body);
     free(snake);
 }
 
@@ -302,7 +296,7 @@ void place_apple(snake_t *snake, apple_t *apple) {
 bool check_snake_eat_apple(snake_t *snake, apple_t *apple) {
     if (snake == NULL || apple == NULL) return false;
 
-    cell_t *head = deque_peek_last(snake->body);
+    cell_t *head = queue_peek(snake->body);
     return head->x == apple->x && head->y == apple->y;
 }
 
